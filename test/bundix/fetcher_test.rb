@@ -1,13 +1,15 @@
-require 'minitest/autorun'
-require 'bundix'
-require 'socket'
-require 'tmpdir'
-require 'base64'
+# typed: false
+# frozen_string_literal: true
+require_relative('../test_helper')
 
-class Bundix
+require('socket')
+require('tmpdir')
+require('base64')
+
+module Bundix
   class FetcherTest < MiniTest::Test
     def test_download_with_credentials
-      with_dir(bundler_credential: 'secret') do |dir|
+      with_dir do |dir|
         with_server(returning_content: 'ok') do |port|
           file = 'some-file'
 
@@ -26,7 +28,7 @@ class Bundix
     end
 
     def test_download_without_credentials
-      with_dir(bundler_credential: nil) do |dir|
+      with_dir do |dir|
         with_server(returning_content: 'ok') do |port|
           file = 'some-file'
 
@@ -36,23 +38,19 @@ class Bundix
             Bundix::Fetcher.new.download(file, "http://127.0.0.1:#{port}/test")
           end
 
-          refute_includes(@request, "Authorization:")
+          refute_includes(@request, 'Authorization:')
           assert_equal(File.read(file), 'ok')
           assert_empty(out)
           assert_match(/^Downloading .* from http.*$/, err)
         end
       end
     end
+
     private
 
-    def with_dir(bundler_credential:)
+    def with_dir
       Dir.mktmpdir do |dir|
         File.write("#{dir}/Gemfile", 'source "https://rubygems.org"')
-
-        if bundler_credential
-          FileUtils.mkdir("#{dir}/.bundle")
-          File.write("#{dir}/.bundle/config", "---\nBUNDLE_127__0__0__1: #{bundler_credential}\n")
-        end
 
         Dir.chdir(dir) do
           Bundler.reset!
@@ -65,7 +63,7 @@ class Bundix
       server = TCPServer.new('127.0.0.1', 0)
       port_num = server.addr[1]
 
-      @request = ''
+      @request = +''
 
       Thread.abort_on_exception = true
       thr = Thread.new do

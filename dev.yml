@@ -1,0 +1,9 @@
+up:
+  - ruby: 2.6.5
+  - bundler
+commands:
+  style: rubocop
+  test: rake test
+  typecheck:
+    aliases: ['tc']
+    run: 'bundle exec srb tc'
