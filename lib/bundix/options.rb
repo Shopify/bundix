@@ -8,20 +8,32 @@ module Bundix
 
     sig { void }
     def initialize
-      @lockfile = T.let('Gemfile.lock', String)
-      @gemset   = T.let('gemset.nix', String)
-      @quiet    = T.let(false, T::Boolean)
+      @output      = T.let(nil, T.nilable(String))
+      @input       = T.let(nil, T.nilable(String))
+      @cache       = T.let(File.expand_path('~/.cache/bundix'), String)
+      @quiet       = T.let(false, T::Boolean)
+      @concurrency = T.let(8, Integer)
     end
 
-    sig { params(lockfile: String).void }
-    attr_writer(:lockfile)
-    sig { returns(String) }
-    attr_reader(:lockfile)
+    sig { params(input: T.nilable(String)).void }
+    attr_writer(:input)
+    sig { returns(T.nilable(String)) }
+    attr_reader(:input)
 
-    sig { params(gemset: String).void }
-    attr_writer(:gemset)
+    sig { params(output: T.nilable(String)).void }
+    attr_writer(:output)
+    sig { returns(T.nilable(String)) }
+    attr_reader(:output)
+
+    sig { params(cache: String).void }
+    attr_writer(:cache)
     sig { returns(String) }
-    attr_reader(:gemset)
+    attr_reader(:cache)
+
+    sig { params(concurrency: Integer).void }
+    attr_writer(:concurrency)
+    sig { returns(Integer) }
+    attr_reader(:concurrency)
 
     sig { params(quiet: T::Boolean).void }
     attr_writer(:quiet)

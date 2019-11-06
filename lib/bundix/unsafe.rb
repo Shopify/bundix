@@ -32,9 +32,11 @@ module Bundix
       h[k]
     end
 
-    sig { params(json: String).returns(T_GEMSET) }
-    def self.gemset_from_json(json)
-      ::JSON.parse(json)
+    sig { params(path: String).returns(T.nilable(T_GEMSET_ENTRY)) }
+    def self.read_gemset_entry_as_json_from_file(path)
+      ::JSON.parse(File.read(path))
+    rescue Errno::ENOENT
+      nil
     end
   end
 end

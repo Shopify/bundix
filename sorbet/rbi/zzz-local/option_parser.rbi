@@ -17,4 +17,7 @@ class OptionParser
 
   sig { params(argv: T::Array[String], into: T.nilable(T::Hash[String, T.untyped])).void }
   def parse!(argv = nil, into: nil); end
+
+  sig { returns(String) }
+  def help; end
 end

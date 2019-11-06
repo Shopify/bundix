@@ -22,7 +22,7 @@ module Bundix
         when ::Bundler::Source::Path
           convert_path(spec, source)
         else
-          puts("#{spec.inspect}\n")
+          STDERR.puts("#{spec.inspect}\n")
           raise('unknown bundler source')
         end
       end
@@ -48,7 +48,7 @@ module Bundix
           version += "-#{platform}"
         end
 
-        puts("#{hash} => #{spec.name}-#{version}.gem\n") unless $BUNDIX_QUIET
+        STDERR.puts("#{hash} => #{spec.name}-#{version}.gem\n") unless $BUNDIX_QUIET
 
         [version, {
           'type' => 'gem',
@@ -67,7 +67,7 @@ module Bundix
 
         hash = sha256_from_prefetch_git_output(output)
         raise("couldn't fetch hash for #{spec.full_name}") unless hash
-        puts("#{hash} => #{uri}\n") unless $BUNDIX_QUIET
+        STDERR.puts("#{hash} => #{uri}\n") unless $BUNDIX_QUIET
 
         [spec.version.to_s, {
           'type' => 'git',

@@ -7,17 +7,18 @@ require('open3')
 require('bundix/sorbet')
 
 module Bundix
-  autoload(:CommandLine,               'bundix/command_line')
-  autoload(:Converter,                 'bundix/converter')
-  autoload(:Fetcher,                   'bundix/fetcher')
-  autoload(:Nixer,                     'bundix/nixer')
-  autoload(:Options,                   'bundix/options')
-  autoload(:Parallel,                  'bundix/parallel')
-  autoload(:PlatformResolver,          'bundix/platform_resolver')
-  autoload(:RebuildGemsetFromLockfile, 'bundix/rebuild_gemset_from_lockfile')
-  autoload(:Source,                    'bundix/source')
-  autoload(:Spec,                      'bundix/spec')
-  autoload(:Unsafe,                    'bundix/unsafe')
+  autoload(:Cache,            'bundix/cache')
+  autoload(:CommandLine,      'bundix/command_line')
+  autoload(:Converter,        'bundix/converter')
+  autoload(:Fetcher,          'bundix/fetcher')
+  autoload(:LockfileToGemset, 'bundix/lockfile_to_gemset')
+  autoload(:Nixer,            'bundix/nixer')
+  autoload(:Options,          'bundix/options')
+  autoload(:Parallel,         'bundix/parallel')
+  autoload(:PlatformResolver, 'bundix/platform_resolver')
+  autoload(:Source,           'bundix/source')
+  autoload(:Spec,             'bundix/spec')
+  autoload(:Unsafe,           'bundix/unsafe')
 
   NIX_INSTANTIATE        = 'nix-instantiate'
   NIX_UNIVERSAL_PREFETCH = 'nix-universal-prefetch'
@@ -46,11 +47,28 @@ module Bundix
     def must_sh(argv)
       out, status = Bundix::Unsafe.open3_capture2e(argv)
       unless status.success?
-        puts("$ #{argv.join(' ')}") unless $BUNDIX_QUIET
-        puts(out) unless $BUNDIX_QUIET
+        STDERR.puts("$ #{argv.join(' ')}") unless $BUNDIX_QUIET
+        STDERR.puts(out) unless $BUNDIX_QUIET
         raise("command execution failed: #{status}")
       end
       out
+    end
+
+    # "Atomically" write `contents` to `path`, by moving the file into place
+    # after writing it elsewhere.
+    sig { params(path: String, contents: String).void }
+    def atomic_write_file(path, contents)
+      tempfile = ::Tempfile.new('atomic-temp')
+      begin
+        tempfile.set_encoding(::Encoding::UTF_8)
+        tempfile.write(contents)
+        tempfile.flush
+        ::FileUtils.mv(T.must(tempfile.path), path)
+        ::FileUtils.chmod(0644, path)
+      ensure
+        tempfile.close!
+        tempfile.unlink
+      end
     end
   end
 end

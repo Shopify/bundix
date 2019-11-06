@@ -41,11 +41,12 @@ module Bundix
     end
 
     def with_gemset(lockfile:)
-      Bundler.instance_variable_set(:@root, Pathname.new(File.expand_path('../data', __dir__)))
-      converter = Bundix::Converter.new(lockfile: ::Bundler::LockfileParser.new(lockfile), previous_gemset: {})
-      yield(converter.convert(fetcher: PrefetchStub.new))
-    ensure
-      Bundler.reset!
+      # Bundler.instance_variable_set(:@root, Pathname.new(File.expand_path('../data', __dir__)))
+      cache = ::Bundix::Cache.new('/tmp')
+      converter = Bundix::Converter.new(lockfile: ::Bundler::LockfileParser.new(::File.read(lockfile)), cache: cache)
+      yield(converter.convert(concurrency: 8, fetcher: PrefetchStub.new))
+      # ensure
+      #   Bundler.reset!
     end
 
     def test_bundler_dep
@@ -54,7 +55,8 @@ module Bundix
       ) do |gemset|
         assert_equal('0.5.0', gemset.dig('bundler-audit', 'version'))
         assert_equal('0.19.4', gemset.dig('thor', 'version'))
-        # assert_equal('0.4.4821-java-unknown', gemset.dig('sorbet-static', 'version'))
+        skip
+        assert_equal('0.4.4821-java-unknown', gemset.dig('sorbet-static', 'version'))
       end
     end
   end
