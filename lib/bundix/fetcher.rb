@@ -112,7 +112,11 @@ module Bundix
     # format a sha256 hash in the base32-encoded format that nix likes to use.
     sig { params(hash: String).returns(String) }
     def format_hash(hash)
-      out = ::Bundix.must_sh([NIX_HASH, '--type', 'sha256', '--to-base32', hash])
+      # out = ::Bundix.must_sh([NIX_HASH, '--type', 'sha256', '--to-base32', hash])
+      out, err, stat = ::Bundix::Unsafe.open3_capture3([NIX_HASH, '--type', 'sha256', '--to-base32', hash])
+      unless stat.success?
+        raise("nix-hash failed: #{err}")
+      end
       T.must(out[::Bundix::SHA256_32])
     end
 

@@ -43,17 +43,6 @@ module Bundix
   class << self
     extend(T::Sig)
 
-    sig { params(argv: T::Array[String]).returns(String) }
-    def must_sh(argv)
-      out, status = Bundix::Unsafe.open3_capture2e(argv)
-      unless status.success?
-        STDERR.puts("$ #{argv.join(' ')}") unless $BUNDIX_QUIET
-        STDERR.puts(out) unless $BUNDIX_QUIET
-        raise("command execution failed: #{status}")
-      end
-      out
-    end
-
     # "Atomically" write `contents` to `path`, by moving the file into place
     # after writing it elsewhere.
     sig { params(path: String, contents: String).void }

@@ -7,11 +7,6 @@ module Bundix
   module Unsafe
     extend(T::Sig)
 
-    sig { params(argv: T::Array[String]).returns([String, Process::Status]) }
-    def self.open3_capture2e(argv)
-      T.unsafe(::Open3).capture2(*argv)
-    end
-
     sig { params(argv: T::Array[String]).returns([String, String, Process::Status]) }
     def self.open3_capture3(argv)
       T.unsafe(::Open3).capture3(*argv)
@@ -25,11 +20,6 @@ module Bundix
     sig { params(h: T::Hash[String, T.untyped], k: String).returns(String) }
     def self.fetch_string(h, k)
       h.fetch(k)
-    end
-
-    sig { params(h: ::Bundler::Settings, k: String).returns(T.nilable(String)) }
-    def self.get_bundler_setting(h, k)
-      h[k]
     end
 
     sig { params(path: String).returns(T.nilable(T_GEMSET_ENTRY)) }
