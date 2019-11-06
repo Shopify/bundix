@@ -13,6 +13,8 @@ module Bundix
   class Fetcher
     extend(T::Sig)
 
+    SHA256_32 = /^[a-z0-9]{52}$/
+
     sig do
       params(
         spec: ::Bundler::LazySpecification, # Given a (proxy for a) Gem Specification
@@ -85,7 +87,7 @@ module Bundix
       result = nix_prefetch_url(uri)
       return unless result # 404
 
-      [T.must(result[::Bundix::SHA256_32]), spec.platform&.to_s]
+      [T.must(result[SHA256_32]), spec.platform&.to_s]
     end
 
     # Prefetch a URL, returning the base32-encoded sha256 hash if successful.
@@ -117,7 +119,7 @@ module Bundix
       unless stat.success?
         raise("nix-hash failed: #{err}")
       end
-      T.must(out[::Bundix::SHA256_32])
+      T.must(out[SHA256_32])
     end
 
     # Fetch remote spec to determine the exact platform

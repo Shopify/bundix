@@ -20,7 +20,6 @@ module Bundix
   autoload(:Spec,             'bundix/spec')
   autoload(:Unsafe,           'bundix/unsafe')
 
-  NIX_INSTANTIATE        = 'nix-instantiate'
   NIX_UNIVERSAL_PREFETCH = 'nix-universal-prefetch'
   NIX_HASH               = 'nix-hash'
 
@@ -34,11 +33,7 @@ module Bundix
     }
   end
   T_GEMSET = T.type_alias { T::Hash[String, T_GEMSET_ENTRY] }
-
-  T_SPEC = T.type_alias { T.any(::Bundler::LazySpecification, ::Gem::Specification) }
   T_PLATFORM_SPEC = T.type_alias { T::Hash[String, String] }
-
-  SHA256_32 = /^[a-z0-9]{52}$/
 
   class << self
     extend(T::Sig)

@@ -7,7 +7,7 @@ module Bundix
 
     # Sorbet doesn't support recursive types.
     # However, since we know our gemsets only have a relatively low maximum
-    # depths, we can fully model our data.
+    # depth, we can fully model our data.
     #
     # T_SER0 contains the serializable scalars
     # T_SER1 through T_SER3 allow nesting via string-keyed hashes or arrays up to
