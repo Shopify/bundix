@@ -1,4 +1,4 @@
-# typed: strict
+# typed: strong
 # frozen_string_literal: true
 require('bundix')
 
@@ -42,27 +42,16 @@ module Bundix
     def fetch_or_build_entry(spec, fetcher, dep_cache)
       @cache.fetch(spec) do
         dep = dep_cache.fetch(T.must(spec.name))
-        generate_uncached_entry(spec, fetcher, dep)
+        # TODO: skip or blow up on error?
+        version, source = ::Bundix::Source.convert(spec, fetcher)
+        {
+          'dependencies' => spec.dependencies.map(&:name) - ['bundler'],
+          'platforms' => ::Bundix::PlatformResolver.resolve(dep.platforms),
+          'groups' => dep.groups.map(&:to_s),
+          'version' => version,
+          'source' => source,
+        }
       end
-    end
-
-    sig do
-      params(
-        spec: ::Bundler::LazySpecification, # Given a gem specification,
-        fetcher: ::Bundix::Fetcher, # fetch the gem to get the sha256 sum
-        dep: ::Bundler::Dependency
-      ).returns(T_GEMSET_ENTRY) # return a hash in the format that we'll serialize into gemset.nix.
-    end
-    def generate_uncached_entry(spec, fetcher, dep)
-      # TODO: skip or blow up on error?
-      version, source = ::Bundix::Source.convert(spec, fetcher)
-      {
-        'dependencies' => spec.dependencies.map(&:name) - ['bundler'],
-        'platforms' => ::Bundix::PlatformResolver.resolve(dep.platforms),
-        'groups' => dep.groups.map(&:to_s),
-        'version' => version,
-        'source' => source,
-      }
     end
 
     sig { params(lock: ::Bundler::LockfileParser).returns(T::Hash[String, ::Bundler::Dependency]) }

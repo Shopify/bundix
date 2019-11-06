@@ -61,6 +61,9 @@ class Bundler::LockfileParser
 
   sig {returns(Gem::Version)}
   def bundler_version; end
+
+  sig {returns(T::Hash[String, Bundler::Dependency])}
+  def dependencies(); end
 end
 
 class Bundler::Definition

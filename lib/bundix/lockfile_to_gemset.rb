@@ -6,13 +6,10 @@ module Bundix
   # RebuildGemsetFromLockfile converts a Gemfile.lock into a gemset.nix. The major effort
   # here is obtaining sha256 hashes for each gem specified in the Gemfile.lock.
   #
-  # Because fetching gems find hashes is expensive, we make use of parsed data
-  # from an existing gemset.nix for any gems that are already shared by the
-  # gemset.nix and the Gemfile.lock, and fetch only those that were newly
-  # introduced.
+  # Because fetching gems to find hashes is expensive, we use a cache to store
+  # the results between runs.
   #
-  # The end result is to write out a new gemset.nix to the provided gemset.nix
-  # path, replacing the existing gemset, if one was provided.
+  # The end result is to return the contents of a new gemset.nix.
   module LockfileToGemset
     extend(T::Sig)
 
