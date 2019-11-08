@@ -11,17 +11,29 @@ module Bundix
   #
   # The end result is to return the contents of a new gemset.nix.
   module LockfileToGemset
-    extend(T::Sig)
+    class << self
+      extend(T::Sig)
+      # Given the contents of a Gemfile.lock and a path to a directory that can
+      # be used for caching between runs, return the text contents of a new
+      # gemset.nix corresponding to the Gemfile.lock.
+      sig { params(lockfile: String, cache: String, concurrency: Integer).returns(String) }
+      def call(lockfile:, cache:, concurrency:)
+        lockfile = parse_lockfile(lockfile)
+        cache    = ::Bundix::Cache.new(cache)
+        gemset   = ::Bundix::Converter.new(lockfile: lockfile, cache: cache).convert(concurrency: concurrency)
+        ::Bundix::Nixer.serialize(gemset)
+      end
 
-    # Given the contents of a Gemfile.lock and a path to a directory that can
-    # be used for caching between runs, return the text contents of a new
-    # gemset.nix corresponding to the Gemfile.lock.
-    sig { params(lockfile: String, cache: String, concurrency: Integer).returns(String) }
-    def self.call(lockfile:, cache:, concurrency:)
-      lockfile = ::Bundler::LockfileParser.new(lockfile)
-      cache    = ::Bundix::Cache.new(cache)
-      gemset   = ::Bundix::Converter.new(lockfile: lockfile, cache: cache).convert(concurrency: concurrency)
-      ::Bundix::Nixer.serialize(gemset)
+      private
+
+      sig { params(path: String).returns(::Bundler::LockfileParser) }
+      def parse_lockfile(path)
+        root = ::Bundler.instance_variable_get(:@root)
+        ::Bundler.instance_variable_set(:@root, Pathname.new(File.dirname(path)))
+        ::Bundler::LockfileParser.new(path)
+      ensure
+        ::Bundler.instance_variable_set(:@root, root)
+      end
     end
   end
 end

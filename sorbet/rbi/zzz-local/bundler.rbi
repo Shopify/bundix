@@ -3,6 +3,13 @@
 module Bundler
   sig {returns(Pathname)}
   def self.root(); end
+
+  # Of course these are not really the full signatures, but it is how we're
+  # using it.
+  sig { params(sym: Symbol, val: T.nilable(Pathname)).void }
+  def self.instance_variable_set(sym, val); end
+  sig { params(sym: Symbol).returns(T.nilable(Pathname)) }
+  def self.instance_variable_get(sym); end
 end
 
 class Bundler::LazySpecification
