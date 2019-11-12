@@ -16,6 +16,11 @@ module Bundix
     SHA256_32 = /^[a-z0-9]{52}$/
     TOFU_SHA256 = '0000000000000000000000000000000000000000000000000000'
 
+    HASH_MISMATCH = T.let(
+      /'([^']+)':\n\s+wanted:\s+([[:alnum:]]+):([[:alnum:]]+)\n\s+got:\s+(?<type>[[:alnum:]]+):(?<hash>[[:alnum:]]+)/,
+      Regexp,
+    )
+
     sig do
       params(
         spec: ::Bundler::LazySpecification, # Given a (proxy for a) Gem Specification
@@ -33,7 +38,7 @@ module Bundix
       )
     end
     def prefetch_from_gemservers(spec, remotes)
-      remotes.each do |remote|
+      remotes.reverse.each do |remote|
         hash, platform = try_prefetch_from_gemserver(spec, remote)
         return remote, format_hash(hash), platform if hash
       end
@@ -48,18 +53,10 @@ module Bundix
       ).returns(String) # prefetch the repo into the nix store, return sha256 hash
     end
     def prefetch_git_repo(uri, revision, submodules: false)
-      set = ::Bundix::Nixer.nixify_set(
-        type: 'git', url: uri, rev: revision, fetchSubmodules: !!submodules, sha256: TOFU_SHA256
-      )
-
-      out, err, stat = ::Bundix::Unsafe.open3_capture3([
-        'nix-build', '--no-out-link', '-E',
-        %[(import <nixpkgs> {}).fetchRubyGem #{set}]
-      ])
-      unless stat.success?
-        raise("unable to fetch git repo at #{uri} (revision #{revision}: #{err}")
+      unless (hash = prefetch('git', url: uri, rev: revision, fetchSubmodules: !!submodules))
+        raise("git prefetch unsuccessful")
       end
-      out
+      hash
     end
 
     private
@@ -95,15 +92,23 @@ module Bundix
     # If the return is nil, we 404'd, and should try other remotes, if any.
     sig { params(url: String).returns(T.nilable(String)) }
     def nix_prefetch_url(url)
+      prefetch('url', url: url, name: ::File.basename(url))
+    end
 
-      set = ::Bundix::Nixer.nixify_set(
-        url: url, name: ::File.basename(url), type: 'url', sha256: TOFU_SHA256,
-      )
+    sig { params(type: String, args: T::Hash[String, T.any(String, T::Boolean)]).returns(T.nilable(String)) }
+    def prefetch(type, args)
+      args = { type: type, sha256: TOFU_SHA256 }.merge(args)
+      set = ::Bundix::Nixer.new(args).serialize
 
-      out, err, stat = ::Bundix::Unsafe.open3_capture3([
+      _, err, stat = ::Bundix::Unsafe.open3_capture3([
         'nix-build', '--no-out-link', '-E',
         %[(import <nixpkgs> {}).fetchRubyGem #{set}]
       ])
+
+      if (data = err.match(HASH_MISMATCH))
+        return(T.must(data.named_captures['hash']))
+      end
+
       unless stat.success?
         if err.include?(' 404 Not Found')
           return(nil)
@@ -111,7 +116,8 @@ module Bundix
           raise("prefetch failed: #{err}")
         end
       end
-      out.force_encoding(::Encoding::UTF_8).strip
+
+      raise("prefetch errored and didn't indicate a hash mismatch: #{err}")
     end
 
     # format a sha256 hash in the base32-encoded format that nix likes to use.

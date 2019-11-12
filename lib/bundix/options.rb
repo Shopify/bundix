@@ -12,7 +12,7 @@ module Bundix
       @input       = T.let(nil, T.nilable(String))
       @cache       = T.let(File.expand_path('~/.cache/bundix'), String)
       @quiet       = T.let(false, T::Boolean)
-      @concurrency = T.let(8, Integer)
+      @concurrency = T.let(1, Integer)
     end
 
     sig { params(input: T.nilable(String)).void }

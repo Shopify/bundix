@@ -102,15 +102,6 @@ module Bundix
       end
     end
 
-    sig { params(set: T::Hash[String, T_SERIALIZABLE]).returns(String) }
-    def nixify_set(set)
-      out = +"{\n"
-      set
-        .sort_by { |k, _| k.to_s.downcase }
-        .each { |(k, v)| out << indent << serialize_key(k) << ' = ' << sub(v, 2) << ";\n" }
-      out << outdent << '}'
-    end
-
     private
 
     sig { params(list: T::Array[T_SERIALIZABLE]).returns(String) }
@@ -120,6 +111,15 @@ module Bundix
         .sort { |l, r| Nixer.order(l, r) }
         .each_with_index { |o, n| out << (n > 0 ? ' ' : '') << sub(o) }
       out << ']'
+    end
+
+    sig { params(set: T::Hash[String, T_SERIALIZABLE]).returns(String) }
+    def nixify_set(set)
+      out = +"{\n"
+      set
+        .sort_by { |k, _| k.to_s.downcase }
+        .each { |(k, v)| out << indent << serialize_key(k) << ' = ' << sub(v, 2) << ";\n" }
+      out << outdent << '}'
     end
 
     sig { returns(T_SERIALIZABLE) }
