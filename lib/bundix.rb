@@ -20,8 +20,7 @@ module Bundix
   autoload(:Spec,             'bundix/spec')
   autoload(:Unsafe,           'bundix/unsafe')
 
-  NIX_UNIVERSAL_PREFETCH = 'nix-universal-prefetch'
-  NIX_HASH               = 'nix-hash'
+  NIX_HASH = 'nix-hash'
 
   T_GEMSET_ENTRY = T.type_alias do
     {

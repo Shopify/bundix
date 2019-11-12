@@ -14,6 +14,7 @@ module Bundix
     extend(T::Sig)
 
     SHA256_32 = /^[a-z0-9]{52}$/
+    TOFU_SHA256 = '0000000000000000000000000000000000000000000000000000'
 
     sig do
       params(
@@ -47,15 +48,14 @@ module Bundix
       ).returns(String) # prefetch the repo into the nix store, return sha256 hash
     end
     def prefetch_git_repo(uri, revision, submodules: false)
-      args = [
-        'fetchRubyGem',
-        '--type', 'git',
-        '--url', uri,
-        '--rev', revision
-      ]
-      args << '--fetch-submodules' << 'true' if submodules
+      set = ::Bundix::Nixer.nixify_set(
+        type: 'git', url: uri, rev: revision, fetchSubmodules: !!submodules, sha256: TOFU_SHA256
+      )
 
-      out, err, stat = ::Bundix::Unsafe.open3_capture3([::Bundix::NIX_UNIVERSAL_PREFETCH, *args])
+      out, err, stat = ::Bundix::Unsafe.open3_capture3([
+        'nix-build', '--no-out-link', '-E',
+        %[(import <nixpkgs> {}).fetchRubyGem #{set}]
+      ])
       unless stat.success?
         raise("unable to fetch git repo at #{uri} (revision #{revision}: #{err}")
       end
@@ -90,22 +90,25 @@ module Bundix
       [T.must(result[SHA256_32]), spec.platform&.to_s]
     end
 
+
     # Prefetch a URL, returning the base32-encoded sha256 hash if successful.
     # If the return is nil, we 404'd, and should try other remotes, if any.
     sig { params(url: String).returns(T.nilable(String)) }
     def nix_prefetch_url(url)
+
+      set = ::Bundix::Nixer.nixify_set(
+        url: url, name: ::File.basename(url), type: 'url', sha256: TOFU_SHA256,
+      )
+
       out, err, stat = ::Bundix::Unsafe.open3_capture3([
-        ::Bundix::NIX_UNIVERSAL_PREFETCH,
-        'fetchRubyGem',
-        '--type', 'url',
-        '--name', ::File.basename(url), # --name mygem-1.2.3.gem
-        '--url', url
+        'nix-build', '--no-out-link', '-E',
+        %[(import <nixpkgs> {}).fetchRubyGem #{set}]
       ])
       unless stat.success?
         if err.include?(' 404 Not Found')
           return(nil)
         else
-          raise("nix-universal-prefetch failed: #{err}")
+          raise("prefetch failed: #{err}")
         end
       end
       out.force_encoding(::Encoding::UTF_8).strip
