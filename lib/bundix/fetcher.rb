@@ -53,10 +53,13 @@ module Bundix
       ).returns(String) # prefetch the repo into the nix store, return sha256 hash
     end
     def prefetch_git_repo(uri, revision, submodules: false)
-      unless (hash = prefetch('git', url: uri, rev: revision, fetchSubmodules: !!submodules))
-        raise("git prefetch unsuccessful")
+      out, err, stat = ::Bundix::Unsafe.open3_capture3([
+        'nix-shopify-prefetch-git', '--rev', revision, uri
+      ])
+      unless stat.success?
+        raise("nix-shopify-prefetch-git failed: #{err}")
       end
-      hash
+      out.strip
     end
 
     private
@@ -92,32 +95,12 @@ module Bundix
     # If the return is nil, we 404'd, and should try other remotes, if any.
     sig { params(url: String).returns(T.nilable(String)) }
     def nix_prefetch_url(url)
-      prefetch('url', url: url, name: ::File.basename(url))
-    end
-
-    sig { params(type: String, args: T::Hash[String, T.any(String, T::Boolean)]).returns(T.nilable(String)) }
-    def prefetch(type, args)
-      args = { type: type, sha256: TOFU_SHA256 }.merge(args)
-      set = ::Bundix::Nixer.new(args).serialize
-
-      _, err, stat = ::Bundix::Unsafe.open3_capture3([
-        'nix-build', '--no-out-link', '-E',
-        %[(import <nixpkgs> {}).fetchRubyGem #{set}]
-      ])
-
-      if (data = err.match(HASH_MISMATCH))
-        return(T.must(data.named_captures['hash']))
-      end
-
+      out, err, stat = ::Bundix::Unsafe.open3_capture3(['nix-shopify-prefetch-url', url])
       unless stat.success?
-        if err.include?(' 404 Not Found')
-          return(nil)
-        else
-          raise("prefetch failed: #{err}")
-        end
+        return(nil) if err =~ /HTTP error 40./
+        raise("nix-shopify-prefetch-url failed: #{err}")
       end
-
-      raise("prefetch errored and didn't indicate a hash mismatch: #{err}")
+      out.strip
     end
 
     # format a sha256 hash in the base32-encoded format that nix likes to use.
