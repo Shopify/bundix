@@ -15,7 +15,6 @@ pkgs.stdenv.mkDerivation rec {
     makeWrapper $src/bin/bundix $out/bin/bundix \
       --prefix PATH : "${nix.out}/bin" \
       --prefix PATH : "${nix-shopify-prefetchers.out}/bin" \
-      --prefix PATH : "${bundler.out}/bin" \
       --set GEM_PATH "${bundler}/${bundler.ruby.gemPath}"
   '';
 
