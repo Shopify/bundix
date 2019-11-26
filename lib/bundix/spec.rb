@@ -28,7 +28,7 @@ module Bundix
           'sha256' => String,
           'url' => String,
           'rev' => String,
-          'fetch_submodules' => T::Boolean,
+          'fetchSubmodules' => T::Boolean,
         }
       end
     end

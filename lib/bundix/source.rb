@@ -63,10 +63,8 @@ module Bundix
         revision = ::Bundix::Unsafe.fetch_string(options, 'revision')
         uri = ::Bundix::Unsafe.fetch_string(options, 'uri')
         submodules = !!source.submodules
-        output = fetcher.prefetch_git_repo(uri, revision, submodules: submodules)
-
-        hash = sha256_from_prefetch_git_output(output)
-        raise("couldn't fetch hash for #{spec.full_name}") unless hash
+        hash = fetcher.prefetch_git_repo(uri, revision, submodules: submodules)
+        raise("invalid git prefetch output for #{spec.full_name}: #{hash}") unless hash =~ Fetcher::SHA256_32
         STDERR.puts("#{hash} => #{uri}\n") unless $BUNDIX_QUIET
 
         [spec.version.to_s, {
@@ -74,16 +72,8 @@ module Bundix
           'url' => uri.to_s,
           'rev' => revision,
           'sha256' => hash,
-          'fetch_submodules' => submodules,
+          'fetchSubmodules' => submodules,
         }]
-      end
-
-      sig { params(output: String).returns(T.nilable(String)) }
-      def sha256_from_prefetch_git_output(output)
-        # FIXME: this is a hack, we should separate $stdout/$stderr in the sh call
-        if (z = output[/({[^}]+})\s*\z/m])
-          ::Bundix::Unsafe.sha256_from_json(z)
-        end
       end
     end
   end
