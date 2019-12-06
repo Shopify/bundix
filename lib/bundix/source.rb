@@ -63,7 +63,8 @@ module Bundix
         revision = ::Bundix::Unsafe.fetch_string(options, 'revision')
         uri = ::Bundix::Unsafe.fetch_string(options, 'uri')
         submodules = !!source.submodules
-        hash = fetcher.prefetch_git_repo(uri, revision, submodules: submodules)
+        json = fetcher.prefetch_git_repo(uri, revision, submodules: submodules)
+        hash = JSON.parse(json).fetch('sha256')
         raise("invalid git prefetch output for #{spec.full_name}: #{hash}") unless hash =~ Fetcher::SHA256_32
         STDERR.puts("#{hash} => #{uri}\n") unless $BUNDIX_QUIET
 

@@ -4,6 +4,7 @@
   bundler ? (pkgs.bundler.override { inherit ruby; }),
   nix ? pkgs.nix,
   nix-shopify-prefetchers ? pkgs.nix-shopify-prefetchers
+  nix-prefetch-git ? pkgs.nix-prefetch-git
 }:
 pkgs.stdenv.mkDerivation rec {
   version = "2.5.0";
@@ -15,6 +16,7 @@ pkgs.stdenv.mkDerivation rec {
     makeWrapper $src/bin/bundix $out/bin/bundix \
       --prefix PATH : "${nix.out}/bin" \
       --prefix PATH : "${nix-shopify-prefetchers.out}/bin" \
+      --prefix PATH : "${nix-prefetch-git.out}/bin" \
       --set GEM_PATH "${bundler}/${bundler.ruby.gemPath}"
   '';
 
