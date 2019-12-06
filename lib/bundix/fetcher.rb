@@ -53,8 +53,9 @@ module Bundix
       ).returns(String) # prefetch the repo into the nix store, return sha256 hash
     end
     def prefetch_git_repo(uri, revision, submodules: false)
+      submodule_args = submodules ? ['--fetch-submodules'] : []
       out, err, stat = ::Bundix::Unsafe.open3_capture3([
-        'nix-shopify-prefetch-git', '--rev', revision, uri
+        'nix-prefetch-git', *submodule_args, '--rev', revision, uri
       ])
       unless stat.success?
         raise("nix-shopify-prefetch-git failed: #{err}")
