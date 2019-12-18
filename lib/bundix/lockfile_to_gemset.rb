@@ -16,10 +16,10 @@ module Bundix
       # Given the contents of a Gemfile.lock and a path to a directory that can
       # be used for caching between runs, return the text contents of a new
       # gemset.nix corresponding to the Gemfile.lock.
-      sig { params(lockfile: String, cache: String, concurrency: Integer).returns(String) }
-      def call(lockfile:, cache:, concurrency:)
+      sig { params(lockfile: String, caches: T::Array[String], concurrency: Integer).returns(String) }
+      def call(lockfile:, caches:, concurrency:)
         lockfile = parse_lockfile(lockfile)
-        cache    = ::Bundix::Cache.new(cache)
+        cache    = ::Bundix::Cache.new(caches)
         gemset   = ::Bundix::Converter.new(lockfile: lockfile, cache: cache).convert(concurrency: concurrency)
         ::Bundix::Nixer.serialize(gemset)
       end

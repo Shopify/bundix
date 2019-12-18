@@ -42,7 +42,7 @@ module Bundix
 
     def with_gemset(lockfile:)
       # Bundler.instance_variable_set(:@root, Pathname.new(File.expand_path('../data', __dir__)))
-      cache = ::Bundix::Cache.new('/tmp')
+      cache = ::Bundix::Cache.new(['/tmp'])
       converter = Bundix::Converter.new(lockfile: ::Bundler::LockfileParser.new(::File.read(lockfile)), cache: cache)
       yield(converter.convert(concurrency: 8, fetcher: PrefetchStub.new))
       # ensure

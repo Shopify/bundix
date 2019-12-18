@@ -10,7 +10,7 @@ module Bundix
     def initialize
       @output      = T.let(nil, T.nilable(String))
       @input       = T.let(nil, T.nilable(String))
-      @cache       = T.let(File.expand_path('~/.cache/bundix'), String)
+      @caches      = T.let([File.expand_path('~/.cache/bundix')], T::Array[String])
       @quiet       = T.let(false, T::Boolean)
       @concurrency = T.let(1, Integer)
     end
@@ -25,10 +25,10 @@ module Bundix
     sig { returns(T.nilable(String)) }
     attr_reader(:output)
 
-    sig { params(cache: String).void }
-    attr_writer(:cache)
-    sig { returns(String) }
-    attr_reader(:cache)
+    sig { params(caches: T::Array[String]).void }
+    attr_writer(:caches)
+    sig { returns(T::Array[String]) }
+    attr_reader(:caches)
 
     sig { params(concurrency: Integer).void }
     attr_writer(:concurrency)

@@ -6,9 +6,10 @@ module Bundix
   class Cache
     extend(T::Sig)
 
-    sig { params(dir: String).void }
-    def initialize(dir)
-      @dir = T.let(dir, String)
+    sig { params(dirs: T::Array[String]).void }
+    def initialize(dirs)
+      @dirs = T.let(dirs, T::Array[String])
+      @first_dir = T.let(T.must(dirs.first), String)
     end
 
     sig do
@@ -30,24 +31,33 @@ module Bundix
 
     sig { params(spec: ::Bundler::LazySpecification).returns(T.nilable(T_GEMSET_ENTRY)) }
     def get(spec)
-      if (p = path(spec))
-        ::Bundix::Unsafe.read_gemset_entry_as_json_from_file(p)
+      read_paths(spec).each do |p|
+        x = ::Bundix::Unsafe.read_gemset_entry_as_json_from_file(p)
+        return x if x
       end
+      nil
     end
 
     sig { params(spec: ::Bundler::LazySpecification, entry: T_GEMSET_ENTRY).void }
     def set(spec, entry)
-      if (p = path(spec))
-        FileUtils.mkdir_p(@dir)
+      if (p = write_path(spec))
+        FileUtils.mkdir_p(@first_dir)
         ::Bundix.atomic_write_file(p, entry.to_json)
       end
     end
 
     sig { params(spec: ::Bundler::LazySpecification).returns(T.nilable(String)) }
-    def path(spec)
+    def write_path(spec)
       k = key(spec)
       return unless k
-      File.join(@dir, "#{k}.json")
+      File.join(@first_dir, "#{k}.json")
+    end
+
+    sig { params(spec: ::Bundler::LazySpecification).returns(T::Array[String]) }
+    def read_paths(spec)
+      k = key(spec)
+      return [] unless k
+      @dirs.map { |dir| File.join(dir, "#{k}.json") }
     end
 
     sig { params(spec: ::Bundler::LazySpecification).returns(T.nilable(String)) }

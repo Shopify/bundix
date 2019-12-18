@@ -31,7 +31,7 @@ module Bundix
       end
 
       gemset = LockfileToGemset.call(
-        lockfile: lockfile, cache: options.cache, concurrency: options.concurrency,
+        lockfile: lockfile, caches: options.caches, concurrency: options.concurrency,
       )
 
       if (output = options.output).nil?
@@ -68,8 +68,8 @@ module Bundix
           opts.output = ::File.expand_path(v)
         end
 
-        o.on('-c', '--cache=~/.cache/bundix', 'path to cache directory') do |v|
-          opts.cache = ::File.expand_path(v)
+        o.on('-c', '--cache=~/.cache/bundix:/var/cache/bundix', 'paths to cache directories; only first will be written to') do |v|
+          opts.caches = v.split(':').map { |p| ::File.expand_path(p) }
         end
 
         o.on('-nNUM', '--concurrency=8', 'number of gem fetches to do in parallel') do |v|

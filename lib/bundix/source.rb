@@ -57,15 +57,18 @@ module Bundix
         }]
       end
 
-      sig { params(spec: ::Bundler::LazySpecification, source: ::Bundler::Source::Git, fetcher: ::Bundix::Fetcher).returns([String, Spec::Source::GIT_TYPE]) }
+      sig do
+        params(spec: ::Bundler::LazySpecification, source: ::Bundler::Source::Git, fetcher: ::Bundix::Fetcher)
+          .returns([String, Spec::Source::GIT_TYPE])
+      end
       def convert_git(spec, source, fetcher)
         options = source.options
         revision = ::Bundix::Unsafe.fetch_string(options, 'revision')
         uri = ::Bundix::Unsafe.fetch_string(options, 'uri')
         submodules = !!source.submodules
         json = fetcher.prefetch_git_repo(uri, revision, submodules: submodules)
-        hash = JSON.parse(json).fetch('sha256')
-        raise("invalid git prefetch output for #{spec.full_name}: #{hash}") unless hash =~ Fetcher::SHA256_32
+        hash = ::Bundix::Unsafe.sha256_from_json(json)
+        raise("invalid git prefetch output for #{spec.full_name}: #{hash}") unless hash && hash =~ Fetcher::SHA256_32
         STDERR.puts("#{hash} => #{uri}\n") unless $BUNDIX_QUIET
 
         [spec.version.to_s, {
