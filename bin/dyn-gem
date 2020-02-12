@@ -1,0 +1,32 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift("/Users/burke/src/github.com/Shopify/bundix/lib")
+ENV['PATH'] = "/Users/burke/.nix-profile/bin:#{ENV['PATH']}"
+ENV['NIX_SSL_CERT_FILE'] = '/Users/burke/.nix-profile/etc/ssl/certs/ca-bundle.crt'
+
+GEM_NAME = ARGV.shift
+GEM_FULL_NAME = ARGV.shift
+GEM_VERSION = ARGV.shift
+GEM_PLATFORM = ARGV.shift
+REMOTES = ARGV.dup
+
+require('bundler')
+require('bundix')
+
+fetcher = ::Bundix::Fetcher.new
+spec = Struct.new(:name, :full_name, :version, :platform).new(
+  GEM_NAME, GEM_FULL_NAME, GEM_VERSION, GEM_PLATFORM,
+)
+remote, hash, platform = fetcher.prefetch_from_gemservers(spec, REMOTES)
+abort("failed to find gem: #{spec}") if remote.nil?
+
+version = GEM_VERSION
+if platform && platform != ::Gem::Platform::RUBY
+  version += "-#{platform}"
+end
+
+puts(::Bundix::Nixer.serialize(
+  version: version.to_s,
+  sha256: hash.to_s,
+  remote: remote.to_s,
+))

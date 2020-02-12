@@ -84,7 +84,7 @@ module Bundix
         return unless spec
       end
 
-      uri = "#{remote}/gems/#{spec.full_name}.gem"
+      uri = File.join(remote, "gems/#{spec.full_name}.gem")
       result = nix_prefetch_url(uri)
       return unless result # 404
 

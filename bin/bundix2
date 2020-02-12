@@ -7,6 +7,11 @@ require('bundler')
 require('bundix')
 
 module Bundix2
+
+  def self.lit(str)
+    ::Bundix::Nixer::NixLiteral.new(str)
+  end
+
   def self.call(lockfile_contents)
     lp = ::Bundler::LockfileParser.new(lockfile_contents)
     dep_cache = ::Bundix::DepCache.build(lp)
@@ -14,35 +19,66 @@ module Bundix2
     data = lp.specs.reduce({}) do |acc, spec|
       dep = dep_cache.fetch(spec.name)
 
-      source = case spec.source
+      static = {
+        dependencies: spec.dependencies.map(&:name) - ['bundler'],
+        groups: dep.groups.map(&:to_s),
+        platforms: ::Bundix::PlatformResolver.resolve(dep.platforms),
+      }
+
+      final = case spec.source
       when ::Bundler::Source::Path
-        { type: 'path', path: File.expand_path(spec.source.path.to_s) }
+        static.merge(
+          version: spec.version.to_s,
+          source: { type: 'path', path: File.expand_path(spec.source.path.to_s) },
+        )
       when ::Bundler::Source::Git
-        {
-          type: 'git',
-          url: 'a',
-          rev: 'a',
-          fetchSubmodules: 'a',
-        }
+        static.merge(
+          version: spec.version.to_s,
+          source: {
+            type: 'git',
+            url: spec.source.options.fetch('uri').to_s,
+            rev: spec.source.options.fetch('revision'),
+            fetchSubmodules: !!spec.source.submodules,
+          }
+        )
       when ::Bundler::Source::Rubygems
-        {
-          type: 'gem',
+        args = ::Bundix::Nixer.serialize({
           remotes: spec.source.remotes.map(&:to_s),
-        }
+          name: spec.name,
+          fullName: spec.full_name,
+          version: spec.version.to_s,
+          platform: spec.platform.to_s,
+        }, indent: 1).strip
+
+        sn = ::Bundix::Nixer.serialize(static.merge(
+          version: lit('dyn.version'),
+          source: {
+            type: 'gem',
+            remotes: [lit('dyn.remote')],
+            sha256: lit('dyn.sha256'),
+          }
+        ), indent: 1).strip
+
+        lit(<<~NIX.strip)
+          (let dyn = (import (dyn-gem #{args})); in #{sn})
+        NIX
       else
         raise('what')
       end
 
-      acc.merge(spec.name => {
-        dependencies: spec.dependencies.map(&:name) - ['bundler'],
-        groups: dep.groups.map(&:to_s),
-        platforms: ::Bundix::PlatformResolver.resolve(dep.platforms),
-        source: source,
-        version: spec.version.to_s,
-      })
+      acc.merge(spec.name => final)
     end
 
-    ::Bundix::Nixer.serialize(data)
+    <<~NIX
+    let
+      pkgs = import <nixpkgs> {};
+      dyn-gem = { name, fullName, version, platform, remotes }:
+        pkgs.runCommand "dyn-gem-${name}-${version}" {} ''
+          ${pkgs.ruby}/bin/ruby ${/Users/burke/src/github.com/Shopify/bundix/bin/dyn-gem} \
+            "${name}" "${fullName}" "${version}" "${platform}" "${builtins.concatStringsSep "\\" \\"" remotes}" > $out
+        '';
+    in #{::Bundix::Nixer.serialize(data)}
+    NIX
   end
 end
 

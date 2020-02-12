@@ -5,6 +5,8 @@ module Bundix
   class Nixer
     extend(T::Sig)
 
+    NixLiteral = Class.new(String)
+
     # Sorbet doesn't support recursive types.
     # However, since we know our gemsets only have a relatively low maximum
     # depth, we can fully model our data.
@@ -24,7 +26,7 @@ module Bundix
       T.any(T::Hash[String, T_SER3], T::Array[T_SER3], T_SER0)
     end
 
-    T_SER0 = T.type_alias { T.any(String, Symbol, Pathname, T::Boolean) }
+    T_SER0 = T.type_alias { T.any(String, Symbol, Pathname, T::Boolean, NixLiteral) }
     T_SER1 = T.type_alias { T.any(T::Hash[String, T_SER0], T::Array[T_SER0], T_SER0) }
     T_SER2 = T.type_alias { T.any(T::Hash[String, T_SER1], T::Array[T_SER1], T_SER0) }
     T_SER3 = T.type_alias { T.any(T::Hash[String, T_SER2], T::Array[T_SER2], T_SER0) }
@@ -36,9 +38,10 @@ module Bundix
     class << self
       extend(T::Sig)
 
-      sig { params(obj: T_SERIALIZABLE).returns(String) }
-      def serialize(obj)
-        new(obj).serialize
+      sig { params(obj: T_SERIALIZABLE, indent: Integer).returns(String) }
+      def serialize(obj, indent: 0)
+        pad = '  ' * indent
+        new(obj).serialize.gsub(/^/, pad)
       end
 
       sig { params(left: T_SERIALIZABLE, right: T_SERIALIZABLE).returns(Integer) }
@@ -84,6 +87,8 @@ module Bundix
         nixify_set(o)
       when ::Array
         nixify_list(o)
+      when NixLiteral
+        o.to_s
       when ::String
         o.dump
       when ::Symbol
