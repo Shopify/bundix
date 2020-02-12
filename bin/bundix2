@@ -1,0 +1,51 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+$LOAD_PATH.unshift(File.expand_path('../../lib', __FILE__))
+
+require('bundler')
+require('bundix')
+
+module Bundix2
+  def self.call(lockfile_contents)
+    lp = ::Bundler::LockfileParser.new(lockfile_contents)
+    dep_cache = ::Bundix::DepCache.build(lp)
+
+    data = lp.specs.reduce({}) do |acc, spec|
+      dep = dep_cache.fetch(spec.name)
+
+      source = case spec.source
+      when ::Bundler::Source::Path
+        { type: 'path', path: File.expand_path(spec.source.path.to_s) }
+      when ::Bundler::Source::Git
+        {
+          type: 'git',
+          url: 'a',
+          rev: 'a',
+          fetchSubmodules: 'a',
+        }
+      when ::Bundler::Source::Rubygems
+        {
+          type: 'gem',
+          remotes: spec.source.remotes.map(&:to_s),
+        }
+      else
+        raise('what')
+      end
+
+      acc.merge(spec.name => {
+        dependencies: spec.dependencies.map(&:name) - ['bundler'],
+        groups: dep.groups.map(&:to_s),
+        platforms: ::Bundix::PlatformResolver.resolve(dep.platforms),
+        source: source,
+        version: spec.version.to_s,
+      })
+    end
+
+    ::Bundix::Nixer.serialize(data)
+  end
+end
+
+if __FILE__ == $PROGRAM_NAME
+  puts(Bundix2.call(STDIN.read))
+end

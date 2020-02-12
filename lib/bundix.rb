@@ -10,6 +10,7 @@ module Bundix
   autoload(:Cache,            'bundix/cache')
   autoload(:CommandLine,      'bundix/command_line')
   autoload(:Converter,        'bundix/converter')
+  autoload(:DepCache,         'bundix/dep_cache')
   autoload(:Fetcher,          'bundix/fetcher')
   autoload(:LockfileToGemset, 'bundix/lockfile_to_gemset')
   autoload(:Nixer,            'bundix/nixer')
