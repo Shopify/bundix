@@ -62,13 +62,21 @@ module Bundix
 
     sig { params(spec: ::Bundler::LazySpecification).returns(T.nilable(String)) }
     def key(spec)
+      # When the ruby architecture changes, the cache becomes invalid for
+      # platform-specific gems.
+      platform_key = if spec.platform != Gem::Platform::RUBY
+        ":#{spec.platform}:#{Gem.platforms.map(&:to_s).join(';')}"
+      else
+        nil
+      end
+
       name = T.must(spec.name)
       case (source = spec.source)
       when ::Bundler::Source::Git
         revision = ::Bundix::Unsafe.fetch_string(source.options, 'revision')
-        "#{name}:git:#{revision}"
+        "#{name}:git:#{revision}#{platform_key}"
       when ::Bundler::Source::Rubygems
-        "#{name}:gem:#{spec.version}"
+        "#{name}:gem:#{spec.version}#{platform_key}"
       end # else nil
     end
   end
